@@ -27,7 +27,7 @@ This repository contains resources and tools for analyzing energy consumption da
 ## 🛠 Getting Started
 
 1. Clone the repository:
-        - git clone <repo_link>
+        - git clone https://github.com/Anas20001/Energy_consumption
 
 2. Navigate to the project directory:
         - cd energy_consumption
@@ -37,3 +37,16 @@ This repository contains resources and tools for analyzing energy consumption da
 
 4. Run the analysis script or open the Jupyter notebook to view visualizations. 
 
+## 🚀 How to Run the Script
+
+To successfully execute the `energy_analysis.py` script, follow the steps below:
+
+1. **Set Up the Environment:**  
+   Ensure you have Python installed on your system. This project is tested with Python 3.9, but other versions might be compatible.
+
+2. **Activate a Virtual Environment (Optional, but Recommended):**  
+   Before installing the dependencies, it's a good practice to use a virtual environment to avoid any package conflicts. 
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+  
