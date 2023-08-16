@@ -1,0 +1,15 @@
+Metric,Value
+Name of dataset,LP_AT0080000870000000000000000097058_2019.csv
+Time period of dataset,2019-01-01 00:15:00 to 2020-01-01 00:00:00
+Count of kw values,"35040, 100%"
+Missing data points (NaN),
+Missing data points timestamps,[]
+Count zero values,
+Zero values timestamps,[]
+Count negative values,
+Negative values,[]
+Negative values timestamps,[]
+Maximum value in dataset,21.92
+Maximum value date,2019-09-06 11:00:00
+Minimum value in dataset,1.08
+Minimum value date,2019-10-19 08:30:00

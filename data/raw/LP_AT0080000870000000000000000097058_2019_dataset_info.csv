@@ -1,0 +1,6 @@
+Metric,Mean,Median,Standard Deviation
+Sunday at 03:00,4.5,3.4,2.52
+Weekdays 08:00-17:00,206.24,244.0,151.25
+Weekends 08:00-17:00,44.67,0.0,76.32
+Weekdays 17:00-08:00,225.66,269.66,166.81
+Weekends 17:00-08:00,80.92,0.0,135.97
