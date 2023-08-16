@@ -95,13 +95,78 @@ def load_data(dataset_path):
 
         unit = input("Do you want the results in kWh or kW? ").strip().lower()
         if unit == 'kw':
-            df['energy_consumption'] = round(df['energy_consumption'] / df.index.to_series().diff().dt.total_seconds() * 3600, 2)
+            df['energy_consumption'] = round(df['energy_consumption'] / 0.25, 2)
             
-        return df
+        return df, unit
 
     except Exception as e:
         print(clr.S + f"Error processing the dataset: {e}" + clr.E)
         return None
+    
+def get_basic_info(df, dataset_path, unit):
+    """
+    Extracts basic information from the dataset.
+    
+    Args:
+        df (pd.DataFrame): The data frame containing the energy consumption data.
+        dataset_path (str): The path to the dataset.
+        
+    Returns:
+        dict: A dictionary containing the extracted basic info.
+    """
+    total_rows = len(df)
+    count_non_nan = df.count()[0]
+    
+    info = {
+        "Name of dataset": dataset_path.split('/')[-1],
+        "Time period of dataset": f"{df.index.min()} to {df.index.max()}",
+        f"Count of {unit} values": f'{count_non_nan}, 100%',   # this is always 100%
+        "Missing data points (NaN)": f'{df.isna().sum()[0]}, {round((df.isna().sum()[0]/total_rows) * 100,2)}%',
+        "Missing data points timestamps": df[df['energy_consumption'].isna()].index.tolist(),
+        "Count zero values": f'{len(df[df["energy_consumption"] == 0])}, {round((len(df[df["energy_consumption"] == 0])/total_rows) * 100,2)}%',
+        "Zero values timestamps": df[df['energy_consumption'] == 0].index.tolist(),
+        "Count negative values": f'{len(df[df["energy_consumption"] < 0])}, {round((len(df[df["energy_consumption"] < 0])/total_rows) * 100,2)}%',
+        "Negative values": df[df['energy_consumption'] < 0]['energy_consumption'].tolist(),
+        "Negative values timestamps": df[df['energy_consumption'] < 0].index.tolist(),
+        "Total energy consumption (kWh)": round(df['energy_consumption'].sum(), 2),
+        "Maximum value in dataset": df['energy_consumption'].max(),
+        "Maximum value date": df['energy_consumption'].idxmax(),
+        "Minimum value in dataset": df['energy_consumption'].min(),
+        "Minimum value date": df['energy_consumption'].idxmin()
+    }
+    
+    return info
+
+def clean_zero_and_empty_values(info):
+    """
+    Cleans the values that are zeroes or empty lists.
+    
+    Args:
+        info (dict): The dictionary containing the basic info.
+        
+    Returns:
+        dict: The cleaned dictionary.
+    """
+    for key, value in info.items():
+        if value in ['0, 0.0%', '[]']:
+            info[key] = ''
+    
+    return info
+
+def generate_basic_info_table(df, dataset_path, unit):
+    """
+    Generates a dictionary containing basic info from the dataset.
+    
+    Args:
+        df (pd.DataFrame): The data frame containing the energy consumption data.
+        dataset_path (str): The path to the dataset.
+        
+    Returns:
+        dict: A dictionary containing the basic info.
+    """
+    info = get_basic_info(df, dataset_path, unit)
+    
+    return clean_zero_and_empty_values(info)
 
 def compute_dataset_info(df):
     """
@@ -147,26 +212,29 @@ def compute_analysis(dataset_path):
         - dataset_path (str): Path to the dataset.
     """
     
-    df = load_data(dataset_path)
+    df, unit = load_data(dataset_path)
+    
+    if unit == 'kw':
+        rows_to_remove = [
+            'Total energy consumption (kWh)',
+            'Daily sum',
+            "Weekday sum",
+            "Weekend sum",
+        ]
     
     print(df.head())
 
     df = create_features(df)
 
-    basic_info = {
-     "Name of dataset": dataset_path.split('/')[-1],
-     "Time period of dataset": f"{df.index.min()} to {df.index.max()}",
-     "Count of kWh values": len(df),
-     "Total energy consumption (kWh)": round(df['energy_consumption'].sum(),2),
-     "Maximum value in dataset": df['energy_consumption'].max(),
-     "Maximum value date": df['energy_consumption'].idxmax(),
-     "Minimum value in dataset": df['energy_consumption'].min(),
-     "Minimum value date": df['energy_consumption'].idxmin(),
-    }
+    basic_info = generate_basic_info_table(df, dataset_path, unit)
 
     basic_info_df = pd.DataFrame(list(basic_info.items()), columns=['Metric', 'Value'])
 
     dataset_info_df = compute_dataset_info(df)
+    
+    basic_info_df = basic_info_df[~basic_info_df['Metric'].isin(rows_to_remove)]
+    dataset_info_df = dataset_info_df[~dataset_info_df['Metric'].isin(rows_to_remove)]
+    
 
     print(clr.S + 'Basic Information' + clr.E)
     basic_info_df = basic_info_df.reset_index(drop=True)
