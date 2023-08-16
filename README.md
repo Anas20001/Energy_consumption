@@ -23,6 +23,7 @@ This repository contains resources and tools for analyzing energy consumption da
     - Monthly breakdown visualizations for energy consumption for each month of 2019.
     - Summarized visualizations: daily, monthly, weekly, and yearly energy consumptions.
   - `profil`: (Contents to be detailed as per requirement.)
+- `app.py`: streamlit app to host our plotly plots for interactivity. 
 
 ## 🛠 Getting Started
 
