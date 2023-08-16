@@ -50,3 +50,21 @@ To successfully execute the `energy_analysis.py` script, follow the steps below:
    python -m venv venv
    source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
   
+## 🌐 Running the Streamlit App
+
+To run the Streamlit app (`app.py`), follow these steps:
+
+1. Ensure you have already installed the required packages from the `requirements.txt`.
+   
+2. Navigate to the project directory if you haven't already:
+
+```bash 
+cd energy_consumption
+```
+3. Run the Streamlit app:
+```bash
+streamlit run app.py
+```
+4. A new browser window or tab should open displaying the Streamlit app. If not, you can manually open the provided link in your preferred browser.
+
+
