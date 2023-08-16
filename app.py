@@ -2,17 +2,20 @@ import streamlit as st
 import plotly.express as px
 import pandas as pd
 
-def load_data():
+@st.cache_data
+def load_daily_data():
     lp_daily = pd.read_csv('data/preprocessed/lp_daily.csv', parse_dates=['date'], index_col=0)
-    lp_weekly = pd.read_csv('data/preprocessed/lp_weekly.csv', parse_dates=['date'], index_col=0)
-    lp_monthly = pd.read_csv('data/preprocessed/lp_monthly.csv', parse_dates=['date'], index_col=0)
-    
     lp_daily['month'] = lp_daily.index.month_name()
-    
-    st.write("LP Weekly Data:", lp_weekly.head())
-    st.write("LP Monthly Data:", lp_monthly.head())
+    return lp_daily
 
-    return lp_daily, lp_weekly, lp_monthly
+@st.cache_data
+def load_weekly_data():
+    return pd.read_csv('data/preprocessed/lp_weekly.csv', parse_dates=['date'], index_col=0)
+
+@st.cache_data
+def load_monthly_data():
+    return pd.read_csv('data/preprocessed/lp_monthly.csv', parse_dates=['date'], index_col=0)
+
 
 def plot_daily(lp_daily):
     fig = px.bar(lp_daily.reset_index(), x='date', y='consumption_kwh',
@@ -27,10 +30,10 @@ def plot_daily(lp_daily):
     st.plotly_chart(fig)
     
 def plot_weekly(lp_weekly):
-    fig = px.bar(lp_weekly, x='year_week', y='consumption_kwh',
+    fig = px.bar(lp_weekly.reset_index(), x='year_week', y='consumption_kwh',
                  title='Weekly Electricity Consumption (kWh)',
                  labels={'consumption_kwh':'kWh', 'year_week': 'Week'},
-                 color_discrete_sequence=['#f63366', '#3052f6'],
+                 color='week_number',
                  template='plotly_dark',
                  width=1500, height=500)
 
@@ -51,21 +54,23 @@ def plot_monthly(lp_monthly):
 
     st.plotly_chart(fig)
 
-
 def main():
     st.title("Energy Consumption Analysis")
     st.sidebar.title("Options")
-    lp_daily, lp_weekly, lp_monthly = load_data()
-    
-    st.sidebar.header("Visualizations")
-    plot_type = st.sidebar.radio("Choose the analysis type:", ["Daily", "Weekly", "Monthly"])
-    
+
+    plot_type = st.sidebar.radio("Choose the analysis type:", ["Daily", "Weekly", "Monthly"], key='plot_type')
     if plot_type == "Daily":
-        plot_daily(lp_daily)
+        data = load_daily_data()
+        plot_daily(data)
     elif plot_type == "Weekly":
-        plot_weekly(lp_weekly)
+        data = load_weekly_data()
+        st.write('Selected Weekly')
+        st.write(data.head())
+        st.write(data.describe())
+        plot_weekly(data)
     elif plot_type == "Monthly":
-        plot_monthly(lp_monthly)
+        data = load_monthly_data()
+        plot_monthly(data)
 
 if __name__ == "__main__":
     main()
