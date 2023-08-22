@@ -44,7 +44,16 @@ def display_results_table(results_df):
     def print_row(items, widths):
         line = "|"
         for item, width in zip(items, widths):
+            if isinstance(item, list):
+                
+                if not item:
+                    item = ''
+                    
+            elif pd.isna(item):
+                item = ''
+            
             line += f" {str(item).ljust(width)} |"
+            
         print(line)
 
     print_border()
@@ -204,7 +213,8 @@ def compute_dataset_info(df):
     
     return pd.DataFrame.from_dict(dataset_info)
 
-def compute_analysis(dataset_path):
+def main(dataset_path):
+    
     """
     Analyze energy consumption data from a given path.
     
@@ -214,6 +224,8 @@ def compute_analysis(dataset_path):
     
     df, unit = load_data(dataset_path)
     
+    rows_to_remove = []
+
     if unit == 'kw':
         rows_to_remove = [
             'Total energy consumption (kWh)',
@@ -222,36 +234,30 @@ def compute_analysis(dataset_path):
             "Weekend sum",
         ]
     
-    print(df.head())
-
     df = create_features(df)
 
     basic_info = generate_basic_info_table(df, dataset_path, unit)
 
     basic_info_df = pd.DataFrame(list(basic_info.items()), columns=['Metric', 'Value'])
+    basic_info_df["Section"] = "Basic Information"
 
     dataset_info_df = compute_dataset_info(df)
+    dataset_info_df["Section"] = "Dataset Statistics"
     
     basic_info_df = basic_info_df[~basic_info_df['Metric'].isin(rows_to_remove)]
     dataset_info_df = dataset_info_df[~dataset_info_df['Metric'].isin(rows_to_remove)]
     
-
-    print(clr.S + 'Basic Information' + clr.E)
-    basic_info_df = basic_info_df.reset_index(drop=True)
-    display_results_table(basic_info_df)
-
-    print(clr.S + 'Dataset Statistics' + clr.E)
-    display_results_table(dataset_info_df)
-
-    basic_info_path = os.path.join(os.path.dirname(dataset_path), os.path.basename(dataset_path).replace('.csv', '_basic_info.csv'))
-    dataset_info_path = os.path.join(os.path.dirname(dataset_path), os.path.basename(dataset_path).replace('.csv', '_dataset_info.csv'))
-
-    basic_info_df.to_csv(basic_info_path, index=False)
-    dataset_info_df.to_csv(dataset_info_path, index=False)
-    print(clr.S + f"Basic Info saved to {basic_info_path} !" + clr.E)
-    print(clr.S + f"Dataset Stats saved to {dataset_info_path} !" + clr.E)
-
-if __name__ == '__main__':
+    combined_df = pd.concat([basic_info_df, dataset_info_df], ignore_index=True)
     
+    combined_path = os.path.join(os.path.dirname(dataset_path), os.path.basename(dataset_path).replace('.csv', '_combined_info.csv'))
+    combined_df.to_csv(combined_path, index=False)
+
+    print(clr.S + 'Combined Information' + clr.E)
+    display_results_table(combined_df)
+
+    print(clr.S + f"Combined Info saved to {combined_path} !" + clr.E)
+                                
+                                
+if __name__ == '__main__':
     dataset_path = input("Enter the path to the dataset: ")
-    compute_analysis(dataset_path)
+    main(dataset_path)
