@@ -164,8 +164,6 @@ def load_data(dataset_path):
         return None
 
 
-
-
 def get_basic_info(df, unit, consumption_column):
     """
     Extracts basic information from the dataset.

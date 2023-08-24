@@ -1,0 +1,7 @@
+.vscode/
+__pycache__/main.cpython-39.pyc
+app_updated.py
+data/preprocessed/profil_LWS_2020_L_analysis.csv
+data/uploaded/
+energy_analyzer.py
+main-new.py
