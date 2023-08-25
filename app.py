@@ -359,7 +359,7 @@ def show_icons():
     return order, plot_type, plausibility_check
 
 
-def mark_outliers(df, target_col='consumption', groupby_cols=[]):
+def mark_outliers(df, target_col='consumption', groupby_cols=None):
     """
     Mark outliers in the dataframe based on IQR method for the target column.
     
@@ -371,6 +371,8 @@ def mark_outliers(df, target_col='consumption', groupby_cols=[]):
     Returns:
     - pd.DataFrame: DataFrame with an added 'outlier' column.
     """
+    if groupby_cols is None:
+        groupby_cols = []
     df['outlier'] = False
 
     # If no groupby columns are provided, calculate IQR for the entire dataset
@@ -394,7 +396,7 @@ def mark_outliers(df, target_col='consumption', groupby_cols=[]):
         mask = (df[target_col] < lower_bound) | (df[target_col] > upper_bound)
         for col, value in zip(groupby_cols, (name if isinstance(name, tuple) else [name])):
             mask = mask & (df[col] == value)
-        
+
         df.loc[mask, 'outlier'] = True
 
     return df
