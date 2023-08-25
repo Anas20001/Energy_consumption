@@ -180,6 +180,10 @@ def load_data(uploaded_file, column_names, skip_rows, unit):
         elif 'timestamp' in columns:
             df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
             df = df.set_index('timestamp')
+            
+        elif 'date' in columns:
+            df['date'] = pd.to_datetime(df['date'], errors='coerce')
+            df = df.set_index('date')
         
         else:
             st.sidebar.warning("Invalid columns format specified by the user. use (date,time,consumption) or (timestamp,consumption))")
