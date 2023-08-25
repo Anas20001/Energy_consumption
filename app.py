@@ -204,7 +204,7 @@ def prepare_data_for_plots(df):
     # Weekly
     df_weekly = df.resample('W-Mon').sum().reset_index()
     df_weekly['year_week'] = df_weekly['datetime'].dt.strftime('%Y-%U')
-    df_weekly['week_number'] = df_weekly['datetime'].dt.isocalender().week
+    df_weekly['week_number'] = df_weekly['datetime'].dt.isocalendar().week
 
     # Monthly
     df_monthly = df.resample('M').sum().reset_index()
