@@ -3,11 +3,10 @@ import plotly.express as px
 import pandas as pd
 import base64
 
-st.set_page_config(layout="wide")
+#st.set_page_config(layout="wide")
 
 
 ## Helper functions 
-
 def create_features(df):
     """
     Create time series features based on time series index.
@@ -74,7 +73,7 @@ def clean_zero_and_empty_values(info):
         dict: The cleaned dictionary.
     """
     for key, value in info.items():
-        if value in ['0, 0.0%', '[]', []]:
+        if str(value) in ['0', '0.0%', '[]']:
             info[key] = ''
 
     return info
@@ -377,6 +376,7 @@ def main():
             
             combined_df = generate_combined_info_table(df, unit.strip().lower(), df.columns[-1], uploaded_file.name)
             st.write("## Statistical Analysis")
+            combined_df['Value'] = combined_df['Value'].astype(str)
             st.table(combined_df.replace('[]', ''))
             
             csv =combined_df.to_csv(index=False)
