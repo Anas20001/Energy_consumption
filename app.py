@@ -1,5 +1,6 @@
 import streamlit as st
 import plotly.express as px
+import plotly.graph_objects as go
 import pandas as pd
 import base64
 
@@ -231,7 +232,7 @@ def get_datetime_column(df):
     return None  # Return None if no datetime column is found.
 
 ## Plots functions 
-def plot_daily(lp_daily, order):
+def plot_daily(lp_daily, order, unit):
     datetime_col = get_datetime_column(lp_daily)
     if not datetime_col:
         st.warning("No datetime column found in the dataset for daily plotting.")
@@ -242,7 +243,7 @@ def plot_daily(lp_daily, order):
 
     fig = px.bar(lp_daily, x=datetime_col, y='consumption',
                  title='Daily Electricity Consumption',
-                 labels={'consumption':'Energy Consumption',
+                 labels={'consumption':f'Energy Consumption ({unit})',
                          datetime_col: 'Date'},
                  color = 'month',
                  category_orders={"month": list(pd.date_range(lp_daily.index.min(), 
@@ -255,14 +256,14 @@ def plot_daily(lp_daily, order):
 
     st.plotly_chart(fig)
 
-def plot_weekly(lp_weekly, order):
+def plot_weekly(lp_weekly, order, unit):
 
     if order == "Descending":
         lp_weekly = lp_weekly.sort_values(by='consumption', ascending=False)
 
     fig = px.bar(lp_weekly, x='year_week', y='consumption',
                  title='Weekly Electricity Consumption',
-                 labels={'consumption':'Energy Consumption',
+                 labels={'consumption':f'Energy Consumption ({unit})',
                          'year_week': 'Week'},
                  color='year_week',
                  template='plotly_dark',
@@ -271,7 +272,7 @@ def plot_weekly(lp_weekly, order):
                      tickangle=45, type='category')
     st.plotly_chart(fig)
 
-def plot_monthly(lp_monthly, order):
+def plot_monthly(lp_monthly, order, unit):
     datetime_col = get_datetime_column(lp_monthly)
     if not datetime_col:
         st.warning("No datetime column found in the dataset for monthly plotting.")
@@ -297,11 +298,12 @@ def plot_monthly(lp_monthly, order):
 
     st.plotly_chart(fig)
 
-def plot_avg_daily_profile(avg_lp, order):
+def plot_avg_daily_profile(avg_lp, order, unit):
 
     fig = px.line(avg_lp, x='time', y='consumption', 
                   color='weekday',
-                  labels={'consumption': 'Energy Consumption', 'time': 'Hour of the Day'},
+                  labels={'consumption': f'Energy Consumption ({unit})', 
+                          'time': 'Hour of the Day'},
                   title='Average Daily Profile per Day of the Week',
                   template='plotly_dark',
                   width=2000, height=800)
@@ -346,8 +348,131 @@ def generate_combined_info_table(df, unit, consumption_column, dataset_path):
 def show_icons():
     
     order = st.sidebar.radio("Order data by:", ["Ascending", "Descending"])
-    plot_type = st.sidebar.radio("Choose the analysis type:", ["None", "Daily", "Weekly", "Monthly", "Average Daily Load Profile"], key='plot_type')
-    return order, plot_type
+    plot_type = st.sidebar.radio("Choose the analysis type:", ["None", "Daily", 
+                                                               "Weekly", "Monthly", 
+                                                               "Average Daily Load Profile"], key='plot_type')
+    plausibility_check = st.sidebar.radio("Choose a plausibility Check:",
+                                            ['None', 'Outliers Detection',
+                                             'Weekday vs Weekend',
+                                             'Histogram of data points'])
+    
+    return order, plot_type, plausibility_check
+
+
+def mark_outliers(df, target_col='consumption', groupby_cols=[]):
+    """
+    Mark outliers in the dataframe based on IQR method for the target column.
+    
+    Args:
+    - df (pd.DataFrame): DataFrame to process.
+    - target_col (str): Column name to check for outliers.
+    - groupby_cols (list): Columns to group by when calculating IQR. If empty, the IQR is calculated for the entire dataset.
+    
+    Returns:
+    - pd.DataFrame: DataFrame with an added 'outlier' column.
+    """
+    df['outlier'] = False
+
+    # If no groupby columns are provided, calculate IQR for the entire dataset
+    if not groupby_cols:
+        Q1 = df[target_col].quantile(0.25)
+        Q3 = df[target_col].quantile(0.75)
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        df['outlier'] = (df[target_col] < lower_bound) | (df[target_col] > upper_bound)
+        return df
+
+    # If groupby columns are provided, loop through each group and calculate IQR
+    for name, group in df.groupby(groupby_cols):
+        Q1 = group[target_col].quantile(0.25)
+        Q3 = group[target_col].quantile(0.75)
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+
+        mask = (df[target_col] < lower_bound) | (df[target_col] > upper_bound)
+        for col, value in zip(groupby_cols, (name if isinstance(name, tuple) else [name])):
+            mask = mask & (df[col] == value)
+        
+        df.loc[mask, 'outlier'] = True
+
+    return df
+
+
+def plot_outliers(df, unit):
+    df['month'] = df.index.month
+    df['year'] = df.index.year
+    df['outlier'] = False
+    df['month-year'] = df.index.strftime('%Y-%m')
+
+    df = mark_outliers(df, 'consumption', ['month', 'year'])
+
+    # Plotting
+    fig = px.scatter(df.reset_index(), x='datetime', y='consumption',
+                     color='outlier', color_discrete_map={True: 'red', False: 'blue'},
+                     title='Scatter Plot for Outlier Detection',
+                     labels={'consumption':f'Energy Consumption ({unit})', 
+                             'datetime': 'Time'},
+                     template='plotly_dark',
+                     width=2000, height=800)
+    fig.update_xaxes(tickangle=45, tickvals=df['month-year'].unique())
+    st.plotly_chart(fig)
+
+
+def plot_weekday_vs_weekend(df, unit):
+    # Calculate daily sum
+    df['day_sum'] = df['consumption'].resample('D').sum()
+    df['weekday'] = df.index.weekday
+
+    df = mark_outliers(df, 'day_sum')
+   
+    df_weekday = df[df['weekday'] < 5]
+    df_weekend = df[df['weekday'] >= 5]
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df_weekday.index, y=df_weekday['day_sum'],
+                             mode='markers',
+                             name='Weekdays',
+                             marker_color=df_weekday['outlier'].map({True: 'red', False: 'blue'})))
+    fig.add_trace(go.Scatter(x=df_weekend.index, y=df_weekend['day_sum'],
+                             mode='markers',
+                             name='Weekends',
+                             marker_color=df_weekend['outlier'].map({True: 'red', False: 'green'})))
+    fig.update_layout(title=f'Weekday vs Weekend Daily Energy Consumption ({unit}) with Outliers',
+                      xaxis_title='Date',
+                      yaxis_title='Energy Consumption',
+                      template='plotly_dark',
+                      width=2000, height=800)
+    st.plotly_chart(fig)
+
+
+def plot_histogram(df, unit):
+   
+    df = mark_outliers(df, 'consumption')
+    
+    # Separate data into outliers and non-outliers
+    outliers = df[df['outlier'] == True]['consumption']
+    non_outliers = df[df['outlier'] == False]['consumption']
+
+    fig = go.Figure()
+    
+    
+    fig.add_trace(go.Histogram(x=non_outliers, name='Non-Outliers', marker_color='blue', opacity=0.7))
+    fig.add_trace(go.Histogram(x=outliers, name='Outliers', marker_color='red', opacity=0.7))
+
+    
+    fig.update_layout(barmode='overlay', 
+                      title=f'Histogram of Energy Consumption Data Points ({unit})',
+                      xaxis_title=f'Energy Consumption ({unit})',
+                      yaxis_title='Frequency',
+                      template='plotly_dark',
+                      width=2000, height=800)
+    
+    fig.update_traces(opacity=0.6)
+    
+    st.plotly_chart(fig)
+
 
 ## Main function
 def main():
@@ -370,7 +495,7 @@ def main():
         preview = uploaded_file.getvalue().decode().split('\n')[:preview_lines]
         st.code("\n".join(preview), language='plaintext')
         
-        order, plot_type = show_icons()
+        order, plot_type, plausibility_check = show_icons()
     
         if column_names and skip_rows is not None and unit:
             df = load_data(uploaded_file, column_names, skip_rows, unit)
@@ -398,14 +523,22 @@ def main():
             data_daily, data_weekly, data_monthly, avg_daily_profile = prepare_data_for_plots(df)
                         
             if plot_type == "Daily":
-                plot_daily(data_daily, order)
+                plot_daily(data_daily, order, unit)
             elif plot_type == "Weekly":
-                plot_weekly(data_weekly, order)
+                plot_weekly(data_weekly, order, unit)
             elif plot_type == "Monthly":
-                plot_monthly(data_monthly, order)
+                plot_monthly(data_monthly, order, unit)
             elif plot_type == "Average Daily Load Profile":
                 plot_avg_daily_profile(avg_daily_profile, order)
                 
+            if plausibility_check == 'Outliers Detection':
+                plot_outliers(df, unit)
+            
+            elif plausibility_check == 'Weekday vs Weekend':
+                plot_weekday_vs_weekend(df, unit)
+            
+            elif plausibility_check == 'Histogram of data points':
+                plot_histogram(df, unit)
 
 if __name__ == "__main__":
     main()
