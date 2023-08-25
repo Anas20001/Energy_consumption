@@ -1,6 +1,7 @@
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.express import imshow
 import pandas as pd
 import base64
 
@@ -25,6 +26,7 @@ def create_features(df):
     df['month'] = df.index.month
     df['year'] = df.index.year
     df['dayofyear'] = df.index.dayofyear
+    df['day'] = df.index.day
     
     return df
 
@@ -355,8 +357,9 @@ def show_icons():
                                             ['None', 'Outliers Detection',
                                              'Weekday vs Weekend',
                                              'Histogram of data points'])
+    heatmap = st.sidebar.radio("Choose a heatmap:", ['None', 'Heatmap'])
     
-    return order, plot_type, plausibility_check
+    return order, plot_type, plausibility_check, heatmap
 
 
 def mark_outliers(df, target_col='consumption', groupby_cols=None):
@@ -475,7 +478,43 @@ def plot_histogram(df, unit):
     
     st.plotly_chart(fig)
 
-
+def plotly_heatmap(data, month, year, unit):
+    """
+    Creates a heatmap using Plotly based on the month and year chosen by the user.
+    
+    Args:
+    - data (pd.DataFrame): DataFrame with energy consumption data.
+    - month (int): Month number.
+    - year (int): Year.
+    
+    Returns:
+    - Plotly Figure
+    """
+    data = data[(data['year'] == year) & (data['month'] == month)]
+    
+    heatmap_data = data.pivot_table(index=data['day'], 
+                                    columns=data['hour'], 
+                                    values='consumption', 
+                                    aggfunc='mean')
+    
+    fig = imshow(heatmap_data, 
+                 labels=dict(x="Hour of Day", y="Day of Month", 
+                 color="consumption"), 
+                 title=f"Average Energy Consumption ({unit}) Heatmap for: {month} - {year}",
+                 color_continuous_scale="RdYlGn_r")
+    
+    fig.update_xaxes(side="top")
+    fig.update_yaxes(tickvals=[10, 20, 30])  
+    
+    fig.update_layout(
+        template="plotly_dark",
+        width=2000, 
+        height=800
+    )
+    
+    st.plotly_chart(fig)
+    
+    
 ## Main function
 def main():
     st.title("Energy Consumption Analysis")
@@ -497,7 +536,7 @@ def main():
         preview = uploaded_file.getvalue().decode().split('\n')[:preview_lines]
         st.code("\n".join(preview), language='plaintext')
         
-        order, plot_type, plausibility_check = show_icons()
+        order, plot_type, plausibility_check, heatmap = show_icons()
     
         if column_names and skip_rows is not None and unit:
             df = load_data(uploaded_file, column_names, skip_rows, unit)
@@ -541,6 +580,16 @@ def main():
             
             elif plausibility_check == 'Histogram of data points':
                 plot_histogram(df, unit)
+                
+            if heatmap == 'Heatmap':
+                df = create_features(df)
+                
+                available_years = list(df['year'].unique())
+                selected_year = st.sidebar.selectbox('Select Year for Heatmap:', available_years)        
+                available_months = list(df[df['year'] == selected_year]['month'].unique())
+                selected_month = st.sidebar.selectbox('Select Month for Heatmap:', available_months)
 
+                plotly_heatmap(df, selected_month, selected_year, unit)
+                
 if __name__ == "__main__":
     main()
