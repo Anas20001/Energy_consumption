@@ -6,7 +6,7 @@ authors = ["Anas Mohamed <anasmohemmed21@yahoo.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "3.9.12"
+python = "^3.9"
 pandas = "*"
 numpy = "*"
 streamlit = "*"
