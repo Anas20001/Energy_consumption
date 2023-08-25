@@ -178,11 +178,11 @@ def load_data(uploaded_file, column_names, skip_rows, unit):
             df = df[[consumption_column]]
         
         elif 'timestamp' in columns:
-            df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
+            df['datetime'] = pd.to_datetime(df['timestamp'], errors='coerce')
             df = df.set_index('datetime')
             
         elif 'date' in columns:
-            df['date'] = pd.to_datetime(df['date'], errors='coerce')
+            df['datetime'] = pd.to_datetime(df['date'], errors='coerce')
             df = df.set_index('datetime')
         
         else:
