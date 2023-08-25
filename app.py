@@ -500,7 +500,7 @@ def plotly_heatmap(data, month, year, unit):
     fig = imshow(heatmap_data, 
                  labels=dict(x="Hour of Day", y="Day of Month", 
                  color="consumption"), 
-                 title=f"Average Energy Consumption ({unit}) Heatmap for: {month} - {year}",
+                 title=f"Average Energy Consumption ({unit}) Heatmap for: {int(month)} - {int(year)}",
                  color_continuous_scale="RdYlGn_r")
     
     fig.update_xaxes(side="top")
