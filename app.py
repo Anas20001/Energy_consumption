@@ -379,7 +379,7 @@ def main():
             
             columns_to_convert = ['Value', 'Mean', 'Median', 'Standard Deviation']
             for col in columns_to_convert:
-                combined_df[col] = df[col].astype(str) 
+                  combined_df[col] = combined_df[col].astype(str) 
             st.table(combined_df.replace('[]', ''))
             
             csv =combined_df.to_csv(index=False)
