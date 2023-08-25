@@ -390,7 +390,7 @@ def main():
             
             csv =combined_df.to_csv(index=False)
             b64 = base64.b64encode(csv.encode()).decode()  
-            href = f'<a href="data:file/csv;base64,{b64}" download="{uploaded_file.name}_combined_info.csv" style="font-size:20px; color:red; text-decoration:underline;">Download combined info</a>'
+            href = f'<a href="data:file/csv;base64,{b64}" download="{uploaded_file.name}_combined_info_in_{unit}.csv" style="font-size:20px; color:red; text-decoration:underline;">Download combined info</a>'
             st.markdown(href, unsafe_allow_html=True)
 
             
