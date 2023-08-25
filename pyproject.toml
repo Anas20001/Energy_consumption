@@ -7,10 +7,10 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-pandas = "*"
-numpy = "*"
-streamlit = "*"
-plotly = "*"
+pandas = "1.4.3"
+numpy = "1.22.4"
+streamlit = "1.25.0"
+plotly== "5.15.0"
 
 
 [build-system]
