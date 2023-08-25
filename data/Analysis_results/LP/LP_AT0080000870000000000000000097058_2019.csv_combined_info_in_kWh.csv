@@ -1,0 +1,24 @@
+Metric,Value,Section,Mean,Median,Standard Deviation
+Name of dataset,LP_AT0080000870000000000000000097058_2019.csv,Basic Information,,,
+Time period of dataset,2019-01-01 00:15:00 to 2020-01-01 00:00:00,Basic Information,,,
+Count of kwh values,"35040, 100%",Basic Information,,,
+Missing data points (NaN),"0, 0.0%",Basic Information,,,
+Missing data points timestamps,,Basic Information,,,
+Count zero values,"0, 0.0%",Basic Information,,,
+Zero values timestamps,,Basic Information,,,
+Count negative values,"0, 0.0%",Basic Information,,,
+Negative values,,Basic Information,,,
+Negative values timestamps,,Basic Information,,,
+Total energy consumption (kWh),50743.05,Basic Information,,,
+Maximum value in dataset,5.48,Basic Information,,,
+Maximum value date,2019-06-09 11:00:00,Basic Information,,,
+Minimum value in dataset,0.27,Basic Information,,,
+Minimum value date,2019-10-19 08:30:00,Basic Information,,,
+Daily sum,,Dataset Statistics,138.63,131.4,47.15
+Weekday sum,,Dataset Statistics,103.83,116.84,76.34
+Weekend sum,,Dataset Statistics,35.48,0.0,60.74
+Sunday at 03:00,,Dataset Statistics,1.15,0.91,0.63
+Weekdays 08:00-17:00,,Dataset Statistics,48.28,54.19,36.61
+Weekends 08:00-17:00,,Dataset Statistics,14.5,0.0,26.51
+Weekdays 17:00-08:00,,Dataset Statistics,55.68,64.64,41.27
+Weekends 17:00-08:00,,Dataset Statistics,20.98,0.0,35.29
