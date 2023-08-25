@@ -377,6 +377,7 @@ def main():
             combined_df = generate_combined_info_table(df, unit.strip().lower(), df.columns[-1], uploaded_file.name)
             st.write("## Statistical Analysis")
             combined_df['Value'] = combined_df['Value'].astype(str)
+            combined_df['Mean'] = combined_df['Mean'].astype(str)
             st.table(combined_df.replace('[]', ''))
             
             csv =combined_df.to_csv(index=False)
