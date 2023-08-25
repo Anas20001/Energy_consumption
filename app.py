@@ -531,7 +531,7 @@ def main():
             elif plot_type == "Monthly":
                 plot_monthly(data_monthly, order, unit)
             elif plot_type == "Average Daily Load Profile":
-                plot_avg_daily_profile(avg_daily_profile, order)
+                plot_avg_daily_profile(avg_daily_profile, order ,unit)
                 
             if plausibility_check == 'Outliers Detection':
                 plot_outliers(df, unit)
