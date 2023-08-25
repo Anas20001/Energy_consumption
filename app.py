@@ -200,19 +200,24 @@ def load_data(uploaded_file, column_names, skip_rows, unit):
 
 ## data preparation functions
 def prepare_data_for_plots(df):
+    # Identify the datetime column
+    datetime_col = get_datetime_column(df)
+    if not datetime_col:
+        raise ValueError("No datetime column found in the dataset.")
+
     # Daily
     df_daily = df.resample('D').sum().reset_index()
-    df_daily['month'] = df_daily['datetime'].dt.month_name()
+    df_daily['month'] = df_daily[datetime_col].dt.month_name()
 
     # Weekly
     df_weekly = df.resample('W-Mon').sum().reset_index()
-    df_weekly['year_week'] = df_weekly['datetime'].dt.strftime('%Y-%U')
-    df_weekly['week_number'] = df_weekly['datetime'].dt.isocalendar().week
+    df_weekly['year_week'] = df_weekly[datetime_col].dt.strftime('%Y-%U')
+    df_weekly['week_number'] = df_weekly[datetime_col].dt.isocalendar().week
 
     # Monthly
     df_monthly = df.resample('M').sum().reset_index()
-    df_monthly['month-year'] = df_monthly['datetime'].dt.strftime('%Y-%m')
-    df_monthly['month'] = df_monthly['datetime'].dt.month_name()
+    df_monthly['month-year'] = df_monthly[datetime_col].dt.strftime('%Y-%m')
+    df_monthly['month'] = df_monthly[datetime_col].dt.month_name()
 
     # AverageDailyProfile
     df['time'] = df.index.time
