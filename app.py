@@ -179,11 +179,11 @@ def load_data(uploaded_file, column_names, skip_rows, unit):
         
         elif 'timestamp' in columns:
             df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
-            df = df.set_index('timestamp')
+            df = df.set_index('datetime')
             
         elif 'date' in columns:
             df['date'] = pd.to_datetime(df['date'], errors='coerce')
-            df = df.set_index('date')
+            df = df.set_index('datetime')
         
         else:
             st.sidebar.warning("Invalid columns format specified by the user. use (date,time,consumption) or (timestamp,consumption))")
@@ -200,11 +200,8 @@ def load_data(uploaded_file, column_names, skip_rows, unit):
 
 ## data preparation functions
 def prepare_data_for_plots(df):
-    # Identify the datetime column
-    datetime_col = get_datetime_column(df)
-    if not datetime_col:
-        raise ValueError("No datetime column found in the dataset.")
-
+    
+    datetime_col = 'datetime'
     # Daily
     df_daily = df.resample('D').sum().reset_index()
     df_daily['month'] = df_daily[datetime_col].dt.month_name()
