@@ -213,6 +213,7 @@ def prepare_data_for_plots(df):
     df_weekly = df.resample('W-Mon').sum().reset_index()
     df_weekly['year_week'] = df_weekly[datetime_col].dt.strftime('%Y-%U')
     df_weekly['week_number'] = df_weekly[datetime_col].dt.isocalendar().week
+    df_weekly['year-month'] = df_weekly[datetime_col].dt.strftime('%Y-%m')
 
     # Monthly
     df_monthly = df.resample('M').sum().reset_index()
@@ -251,7 +252,7 @@ def plot_daily(lp_daily, order, unit):
                  category_orders={"month": list(pd.date_range(lp_daily.index.min(), 
                                                               lp_daily.index.max(), 
                                                               freq='D').day_name())},
-                 template='plotly_dark',
+                 template='none',
                  width=2000, height=800)
 
     fig.update_xaxes(tickangle=45)
@@ -267,9 +268,10 @@ def plot_weekly(lp_weekly, order, unit):
                  title='Weekly Electricity Consumption',
                  labels={'consumption':f'Energy Consumption ({unit})',
                          'year_week': 'Week'},
-                 color='year_week',
-                 template='plotly_dark',
+                 color='year-month',
+                 template='none',
                  width=2000, height=800)
+    
     fig.update_xaxes(tickvals=lp_weekly['year_week'].unique(), 
                      tickangle=45, type='category')
     st.plotly_chart(fig)
@@ -291,7 +293,7 @@ def plot_monthly(lp_monthly, order, unit):
                  category_orders={"month": list(pd.date_range(lp_monthly.index.min(),
                                                               lp_monthly.index.max(), 
                                                               freq='M').month_name())},
-                 template='plotly_dark',
+                 template='none',
                  width=2000, height=800)
     
     fig.update_xaxes(tickvals=lp_monthly['month-year'].unique(),
@@ -307,7 +309,7 @@ def plot_avg_daily_profile(avg_lp, order, unit):
                   labels={'consumption': f'Energy Consumption ({unit})', 
                           'time': 'Hour of the Day'},
                   title='Average Daily Profile per Day of the Week',
-                  template='plotly_dark',
+                  template='none',
                   width=2000, height=800)
                   
                   
@@ -419,7 +421,7 @@ def plot_outliers(df, unit):
                      title='Scatter Plot for Outlier Detection',
                      labels={'consumption':f'Energy Consumption ({unit})', 
                              'datetime': 'Time'},
-                     template='plotly_dark',
+                     template='none',
                      width=2000, height=800)
     fig.update_xaxes(tickangle=45, tickvals=df['month-year'].unique())
     st.plotly_chart(fig)
@@ -447,7 +449,7 @@ def plot_weekday_vs_weekend(df, unit):
     fig.update_layout(title=f'Weekday vs Weekend Daily Energy Consumption ({unit}) with Outliers',
                       xaxis_title='Date',
                       yaxis_title='Energy Consumption',
-                      template='plotly_dark',
+                      template='none',
                       width=2000, height=800)
     st.plotly_chart(fig)
 
@@ -471,7 +473,7 @@ def plot_histogram(df, unit):
                       title=f'Histogram of Energy Consumption Data Points ({unit})',
                       xaxis_title=f'Energy Consumption ({unit})',
                       yaxis_title='Frequency',
-                      template='plotly_dark',
+                      template='none',
                       width=2000, height=800)
     
     fig.update_traces(opacity=0.6)
@@ -498,16 +500,16 @@ def plotly_heatmap(data, month, year, unit):
                                     aggfunc='mean')
     
     fig = imshow(heatmap_data, 
-                 labels=dict(x="Hour of Day", y="Day of Month", 
+                 labels=dict(y="Hour of Day", x="Day of Month", 
                  color="consumption"), 
                  title=f"Average Energy Consumption ({unit}) Heatmap for: {int(month)} - {int(year)}",
                  color_continuous_scale="RdYlGn_r")
     
-    fig.update_xaxes(side="top")
+    fig.update_xaxes(side="bottom")
     fig.update_yaxes(tickvals=[10, 20, 30])  
     
     fig.update_layout(
-        template="plotly_dark",
+        template="none",
         width=2000, 
         height=800
     )
