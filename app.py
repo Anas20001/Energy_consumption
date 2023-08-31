@@ -163,7 +163,7 @@ def load_data(uploaded_file, column_names, skip_rows, unit):
     
     try:
         # Read the uploaded file
-        df = pd.read_csv(uploaded_file, sep=';', decimal=',', 
+        df = pd.read_csv(uploaded_file, sep=None, engine='python', decimal=',', 
                          dayfirst=True, skiprows=skip_rows, header=None, 
                          encoding='ISO-8859-1')
         
