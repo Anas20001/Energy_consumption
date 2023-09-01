@@ -4,6 +4,7 @@ import plotly.graph_objects as go
 from plotly.express import imshow
 import pandas as pd
 import base64
+from io import StringIO
 
 st.set_page_config(layout="wide")
 
@@ -136,7 +137,7 @@ def compute_dataset_info(df, consumption_column):
     
     return pd.DataFrame.from_dict(dataset_info)
 
-def load_data(uploaded_file, column_names, skip_rows, unit):
+def load_data(uploaded_file, column_names, skip_rows, unit, usecols):
     """
     Load energy data from a given path.
     
@@ -163,9 +164,9 @@ def load_data(uploaded_file, column_names, skip_rows, unit):
     
     try:
         # Read the uploaded file
-        df = pd.read_csv(uploaded_file, sep=None, engine='python', decimal=',', 
+        df = pd.read_csv(uploaded_file, sep=';', engine='python', decimal=',', 
                          dayfirst=True, skiprows=skip_rows, header=None, 
-                         encoding='ISO-8859-1')
+                         encoding='ISO-8859-1', usecols=usecols)
         
         if len(df.columns) != len(columns):
             st.sidebar.warning("Number of columns in the dataset does not match the number of columns specified by the user.")
@@ -175,26 +176,31 @@ def load_data(uploaded_file, column_names, skip_rows, unit):
         df.columns = columns
         
         if 'date' in columns and 'time' in columns:
-            df['datetime'] = df['date'] + ' ' + df['time']
-            df['datetime'] = pd.to_datetime(df['datetime'], errors='coerce')
-            df = df.set_index('datetime')
+            df['timestamp'] = df['date'] + ' ' + df['time']
+            df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
+            df = df.set_index('timestamp')
             df = df[[consumption_column]]
         
         elif 'timestamp' in columns:
-            df['datetime'] = pd.to_datetime(df['timestamp'], errors='coerce')
-            df = df.set_index('datetime')
+            df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
+            df = df.set_index('timestamp')
+            
             
         elif 'date' in columns:
-            df['datetime'] = pd.to_datetime(df['date'], errors='coerce')
-            df = df.set_index('datetime')
+            df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
+            df = df.set_index('timestamp')
         
         else:
             st.sidebar.warning("Invalid columns format specified by the user. use (date,time,consumption) or (timestamp,consumption))")
             return None
-
+        
+        print(df[consumption_column].dtype)
+     
+            
+            
         if unit == 'kw':
             df[consumption_column] = df[consumption_column] / 0.25
-     
+            
         return df
     
     except Exception as e:
@@ -503,6 +509,7 @@ def plotly_heatmap(data, month, year, unit):
                  labels=dict(y="Hour of Day", x="Day of Month", 
                  color="consumption"), 
                  title=f"Average Energy Consumption ({unit}) Heatmap for: {int(month)} - {int(year)}",
+                 aspect='auto',
                  color_continuous_scale="RdYlGn_r")
     
     fig.update_xaxes(side="bottom")
@@ -535,13 +542,38 @@ def main():
         unit = st.sidebar.radio("Results unit", ["kWh", "kW"])
         
         st.write(f"## Preview of uploaded data (Top {preview_lines} lines)")
-        preview = uploaded_file.getvalue().decode().split('\n')[:preview_lines]
-        st.code("\n".join(preview), language='plaintext')
+        preview = uploaded_file.getvalue().decode('ISO-8859-1').split('\n')[:preview_lines]
+        df = pd.read_csv(StringIO('\n'.join(preview)), sep=None, engine='python')
+        st.table(df.head(preview_lines))
+        
+        columns = st.text_input("Enter the column indices you want to import, separated by commas (e.g. 0,2,4):")
+        
+        if columns:
+            usecols = [int(x.strip()) for x in columns.split(',')]
+        
+        
+            
+            df = pd.read_csv(StringIO('\n'.join(preview)), 
+                        engine='python', sep=';', decimal=',', 
+                        encoding='ISO-8859-1', 
+                        header=None, 
+                        skiprows=skip_rows, 
+                        usecols = usecols)
+        else:
+            df = pd.read_csv(StringIO('\n'.join(preview)), 
+                        engine='python', sep=';', decimal=',', 
+                        encoding='ISO-8859-1', 
+                        header=None, 
+                        skiprows=skip_rows
+                        )
+
+        df.columns = columns.split(',')
+        st.table(df.head(preview_lines))
         
         order, plot_type, plausibility_check, heatmap = show_icons()
     
         if column_names and skip_rows is not None and unit:
-            df = load_data(uploaded_file, column_names, skip_rows, unit)
+            df = load_data(uploaded_file, column_names, skip_rows, unit, usecols)
             st.write("## Data Sample (Top 5 rows)")
             st.table(df.head())
             
