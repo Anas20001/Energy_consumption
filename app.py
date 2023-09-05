@@ -96,7 +96,9 @@ def main():
 
         utils.handle_plotting_and_analysis(visualizer, plot_type, plausibility_check, heatmap)
         
-        utils.handle_heatmap()
+        if heatmap != 'None':
+            
+            utils.handle_heatmap()
 
 # Execute main function
 if __name__ == "__main__":
