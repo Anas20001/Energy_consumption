@@ -2,10 +2,19 @@ import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.express import imshow
+from plotly.subplots import make_subplots
+
 import pandas as pd
+import numpy as np 
+from scipy.stats import norm 
+import scipy.stats as stats
 import base64
 from io import StringIO
-
+    
+@st.cache_data   
+def load_outdoor_data():
+    return pd.read_csv('/home/beyond/Desktop/dilt/theresa-03/Analysis/graz_weather/graz_weather_cleaned.csv',
+                             parse_dates=['timestamp'], index_col=['timestamp'])
 class DataLoader:
     
     def __init__(self, uploaded_file, unit):
@@ -244,6 +253,11 @@ class Visualizer:
         self.unit = unit 
         self.order = order 
 
+    def convert_unit(self, data, unit):
+        if unit.strip().lower() == 'kw':
+            data['consumption'] = data['consumption'] * 4
+        return data
+    
     def plot_daily(self, lp_daily):
             datetime_col = Utils.get_datetime_column(lp_daily)
             if not datetime_col:
@@ -253,7 +267,8 @@ class Visualizer:
             if self.order == "Descending":
                 lp_daily = lp_daily.sort_values(by='consumption', ascending=False)
                 
-        
+            lp_daily = lp_daily.replace(0,np.nan).dropna()
+            lp_daily['year-week'] = lp_daily[datetime_col].dt.strftime('%Y-%U')
             fig = px.bar(lp_daily, x=datetime_col, y='consumption',
                          title='Daily Electricity Consumption',
                          labels={'consumption':f'Energy Consumption ({self.unit})',
@@ -264,28 +279,30 @@ class Visualizer:
                                                                       freq='M').month_name())},
                          template='none',
                          width=2000, height=800)
-            
-            fig.update_xaxes(tickangle=45)
+            tickvals = lp_daily['year-week'].unique()
+            fig.update_xaxes(tickangle=45, type='category', tickvals=tickvals)
         
             st.plotly_chart(fig)
         
 
     def plot_weekly(self, lp_weekly):
         
-            if self.order == "Descending":
-                lp_weekly = lp_weekly.sort_values(by='consumption', ascending=False)
-        
-            fig = px.bar(lp_weekly, x='year_week', y='consumption',
-                         title='Weekly Electricity Consumption',
-                         labels={'consumption':f'Energy Consumption ({self.unit})',
-                                 'year_week': 'Week'},
-                         color='year-month',
-                         template='none',
-                         width=2000, height=800)
+        if self.order == "Descending":
+            lp_weekly = lp_weekly.sort_values(by='consumption', ascending=False)
             
-            fig.update_xaxes(tickvals=lp_weekly['year_week'].unique(), 
+        lp_weekly= lp_weekly.replace(0,np.nan).dropna()
+        
+        fig = px.bar(lp_weekly, x='year_week', y='consumption',
+                    title='Weekly Electricity Consumption',
+                    labels={'consumption':f'Energy Consumption ({self.unit})',
+                                 'year_week': 'Week'},
+                    color='year-month',
+                    template='none',
+                    width=2000, height=800)
+            
+        fig.update_xaxes(tickvals=lp_weekly['year_week'].unique(), 
                              tickangle=45, type='category')
-            st.plotly_chart(fig)
+        st.plotly_chart(fig)
         
         
     def plot_monthly(self, lp_monthly):
@@ -336,7 +353,7 @@ class Visualizer:
             self.df = Utils.mark_outliers(self.df, 'consumption', ['month', 'year'])
         
             # Plotting
-            fig = px.scatter(self.df.reset_index(), x='datetime', y='consumption',
+            fig = px.scatter(self.df.reset_index(), x='timestamp', y='consumption',
                              color='outlier', color_discrete_map={True: 'red', False: 'blue'},
                              title='Scatter Plot for Outlier Detection',
                              labels={'consumption':f'Energy Consumption ({self.unit})', 
@@ -366,76 +383,96 @@ class Visualizer:
                                      mode='markers',
                                      name='Weekends',
                                      marker_color=df_weekend['outlier'].map({True: 'red', False: 'green'})))
+            
+            fig.add_trace(go.Scatter(x=[None], y=[None],
+                             mode='markers',
+                             marker=dict(size=10, color='red'),
+                             name='Outlier',
+                             hoverinfo='none',
+                             showlegend=True))
+            
             fig.update_layout(title=f'Weekday vs Weekend Daily Energy Consumption ({self.unit}) with Outliers',
                               xaxis_title='Date',
                               yaxis_title='Energy Consumption',
                               template='none',
                               width=2000, height=800)
             st.plotly_chart(fig)
+            
+    def plot_histogram(self, unit='kwh', width=2000, height=800):
+        self.df = self.convert_unit(self.df, unit)
+        
+        self.df = self.df.dropna()
+        
+        self.df = self.df.replace([np.inf, -np.inf], np.nan).dropna(subset=['consumption'])
+        self.df = Utils.mark_outliers(self.df)
+        outliers = self.df[self.df['outlier'] == True]['consumption']
+        non_outliers = self.df[self.df['outlier'] == False]['consumption']
         
         
-    def plot_histogram(self):
-           
-            self.df =Utils.mark_outliers(self.df, 'consumption')
-            
-            # Separate data into outliers and non-outliers
-            outliers = self.df[self.df['outlier'] == True]['consumption']
-            non_outliers = self.df[self.df['outlier'] == False]['consumption']
+        fig = go.Figure()
+        fig.add_trace(go.Histogram(x=non_outliers, name='Non-Outliers', marker_color='blue', opacity=0.7))
+        fig.add_trace(go.Histogram(x=outliers, name='Outliers', marker_color='red', opacity=0.7))
         
-            fig = go.Figure()
-            
-            
-            fig.add_trace(go.Histogram(x=non_outliers, name='Non-Outliers', marker_color='blue', opacity=0.7))
-            fig.add_trace(go.Histogram(x=outliers, name='Outliers', marker_color='red', opacity=0.7))
+        all_data = self.df['consumption']
+        kde_x = np.linspace(min(all_data), max(all_data), 100)
+        kde_y = stats.gaussian_kde(all_data)(kde_x)
+        fig.add_trace(go.Scatter(x=kde_x, y=kde_y * len(all_data), mode='lines', name='KDE (All Data)', line=dict(color='green', dash='dash')))
         
-            
-            fig.update_layout(barmode='overlay', 
-                              title=f'Histogram of Energy Consumption Data Points ({self.unit})',
-                              xaxis_title=f'Energy Consumption ({self.unit})',
-                              yaxis_title='Frequency',
-                              template='none',
-                              width=2000, height=800)
-            
-            fig.update_traces(opacity=0.6)
-            
-            st.plotly_chart(fig)
+        fig.update_layout(barmode='overlay',
+                        title=f'Histogram of Energy Consumption Data Points ({unit})',
+                        xaxis_title=f'Energy Consumption ({unit})',
+                        yaxis_title='Frequency',
+                        template='none',
+                        width=width, height=height)
+        
+        st.plotly_chart(fig)   
         
 
-    def plot_heatmap(self, month, year):
-            """
-            Creates a heatmap using Plotly based on the month and year chosen by the user.
+    def plot_heatmap(data, weather_df, year, unit):
+
+        data_1 = data[data['year'] == year].dropna()
+        
+        heatmap_data = data.pivot_table(index=data_1['hour'], 
+                                        columns=data_1['month-year'], 
+                                        values='consumption', 
+                                        aggfunc='mean')
+
             
-            Args:
-            - data (pd.DataFrame): DataFrame with energy consumption data.
-            - month (int): Month number.
-            - year (int): Year.
+        weather_data = weather_df[weather_df['year'] == year].dropna()
+        weather_heatmap_data = weather_data.pivot_table(index=weather_data['hour'], 
+                                                            columns=weather_data['month-year'], 
+                                                            values='Temperature', 
+                                                            aggfunc='mean')
             
-            Returns:
-            - Plotly Figure
-            """
-            data = self.df[(self.df['year'] == year) & (self.df['month'] == month)]
             
-            heatmap_data = data.pivot_table(index=data['day'], 
-                                            columns=data['hour'], 
-                                            values='consumption', 
-                                            aggfunc='mean')
-            
-            fig = imshow(heatmap_data, 
-                         labels=dict(y="Hour of Day", x="Day of Month", 
-                         color="consumption"), 
-                         title=f"Average Energy Consumption ({self.unit}) Heatmap for: {int(month)} - {int(year)}",
-                         color_continuous_scale="RdYlGn_r")
-            
-            fig.update_xaxes(side="bottom")
-            fig.update_yaxes(tickvals=[10, 20, 30])  
-            
-            fig.update_layout(
-                template="none",
-                width=2000, 
-                height=800
+        fig = make_subplots(rows=2, cols=1, subplot_titles=(f"Average Energy Consumption ({unit}) Heatmap for {int(year)}",
+                                                                "Average Outdoor Temperature Heatmap"))
+
+        fig.add_trace(
+                go.Heatmap(z=heatmap_data.values, 
+                        x=heatmap_data.columns, 
+                        y=heatmap_data.index, 
+                        coloraxis="coloraxis1"),
+                row=1, col=1
             )
-            
-            st.plotly_chart(fig)
+
+        fig.add_trace(
+                go.Heatmap(z=weather_heatmap_data.values, 
+                        x=weather_heatmap_data.columns, 
+                        y=weather_heatmap_data.index, 
+                        coloraxis="coloraxis2"),
+                row=2, col=1
+            )
+
+        fig.update_layout(
+                coloraxis1=dict(colorscale="Viridis"),
+                coloraxis2=dict(colorscale="Viridis"),
+                title=f"Comparative Heatmaps for {int(year)}",
+                template="none",
+                width=1600, height=800
+            )
+
+        st.plotly_chart(fig)
 
 
 class Utils:
@@ -560,11 +597,14 @@ class Utils:
     def handle_heatmap(self):
         df = self.create_features(self.df)
         
-        available_years = list(self.df['year'].unique())
+        weather_df = load_outdoor_data()
+        weather_df = self.create_features(weather_df)
+        
+        available_years = list(df['year'].unique())
         selected_year = st.sidebar.selectbox('Select Year for Heatmap:', available_years)        
-        available_months = list(self.df[self.df['year'] == selected_year]['month'].unique())
-        selected_month = st.sidebar.selectbox('Select Month for Heatmap:', available_months)
-        Visualizer.plotly_heatmap(self.df, selected_month, selected_year, self.unit)
+        #available_months = list(df[df['year'] == selected_year]['month'].unique())
+        #selected_month = st.sidebar.selectbox('Select Month for Heatmap:', available_months)
+        Visualizer.plot_heatmap(df, weather_df, selected_year, self.unit)
     
     def handle_plotting_and_analysis(self, Visualizer, plot_type, plausibility_check, heatmap):
         plot_type_switch = {
@@ -576,8 +616,8 @@ class Utils:
 
         plausibility_check_switch = {
             'Outliers Detection': lambda: Visualizer.plot_outliers(),
-            'Weekday vs Weekend': lambda: Visualizer.plot_weekday_vs_weekend(self.df),
-            'Histogram of data points': lambda: Visualizer.plot_histogram(self.df)
+            'Weekday vs Weekend': lambda: Visualizer.plot_weekday_vs_weekend(),
+            'Histogram of data points': lambda: Visualizer.plot_histogram()
             }
 
         if plot_type in plot_type_switch:
@@ -585,9 +625,6 @@ class Utils:
 
         if plausibility_check in plausibility_check_switch:
             plausibility_check_switch[plausibility_check]()
-
-        if heatmap != 'None':
-            self.handle_heatmap()
             
     @staticmethod
     def create_features(df):
@@ -608,5 +645,6 @@ class Utils:
         df['year'] = df.index.year
         df['dayofyear'] = df.index.dayofyear
         df['day'] = df.index.day
+        df['month-year'] = df.index.strftime('%Y-%m')
     
         return df  

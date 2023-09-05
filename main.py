@@ -5,6 +5,14 @@ import base64
 def run_logic(df, unit, consumption_col, uploaded_file):
     st.write("## Data Sample (Top 5 rows)")
     st.table(df.head())
+    
+    loaded_df = df.reset_index().to_csv(index=False)
+    st.download_button(
+        label="Download cleaned data",
+        data=loaded_df,
+        file_name=f"{uploaded_file.name.split('.')[0]}_cleaned.csv",
+        
+    )
 
     st.write("## General Consumption Information")
     st.table(df['consumption'].describe())
@@ -58,7 +66,6 @@ def main():
     st.write("Welcome to the Energy Consumption Analysis App!")
     st.write("Please upload a CSV file or use the preloaded LP and select an analysis type to get started.")
     st.image("Landing_page.png")
-    
     df = None
     consumption_col = None
     
@@ -88,7 +95,8 @@ def main():
         
 
         utils.handle_plotting_and_analysis(visualizer, plot_type, plausibility_check, heatmap)
-
+        
+        utils.handle_heatmap()
 
 # Execute main function
 if __name__ == "__main__":
