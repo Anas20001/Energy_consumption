@@ -13,7 +13,7 @@ from io import StringIO
     
 @st.cache_data   
 def load_outdoor_data():
-    return pd.read_csv('/home/beyond/Desktop/dilt/theresa-03/Analysis/graz_weather/graz_weather_cleaned.csv',
+    return pd.read_csv('graz_weather/graz_weather_cleaned.csv',
                              parse_dates=['timestamp'], index_col=['timestamp'])
 class DataLoader:
     
